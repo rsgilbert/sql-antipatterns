@@ -1,0 +1,139 @@
+CREATE TABLE Comments2 (
+comment_id SERIAL PRIMARY KEY,
+parent_id BIGINT UNSIGNED,
+comment TEXT NOT NULL,
+FOREIGN KEY(parent_id) REFERENCES Comments2(comment_id)
+);
+
+// inserting data
+INSERT INTO Comments2(parent_id, comment) VALUES(6, "That fixed it");
+
+// querying comment and its children
+SELECT c1.*, c2.*
+FROM Comments2 AS c1 LEFT OUTER JOIN Comments2 AS c2 
+	ON c1.comment_id = c2.parent_id;
+
+// querying upto 4 levels
+
+SELECT c1.*, c2.*, c3.*, c4.*
+FROM Comments2 AS c1 -- 1st level
+	LEFT OUTER JOIN Comments2 AS c2 
+		ON c1.comment_id = c2.parent_id -- 2nd level
+	LEFT OUTER JOIN Comments2 AS c3
+		ON c2.comment_id = c3.parent_id -- 3rd level
+	LEFT OUTER JOIN Comments2 AS c4
+		ON c3.comment_id = c4.parent_id; -- 4th level
+
+
+// perform recursive query 
+
+WITH RECURSIVE CommentsTree 
+	(comment_id, parent_id, comment, depth)
+AS (
+	SELECT *, 0 AS depth 
+    FROM Comments2
+	WHERE parent_id IS NULL
+    UNION  ALL
+		SELECT c.*, ct.depth+1 AS depth 
+        FROM CommentsTree  ct
+          JOIN Comments2 AS c ON ct.comment_id = c.parent_id
+)
+SELECT * FROM CommentsTree;
+
+
+// start from a particular comment 
+
+WITH RECURSIVE CommentsTree 
+	(comment_id, parent_id, comment, depth)
+AS (
+	SELECT *, 0 AS depth 
+    FROM Comments2
+	WHERE comment_id = 4
+    UNION  ALL
+		SELECT c.*, ct.depth+1 AS depth 
+        FROM CommentsTree  ct
+          JOIN Comments2 AS c ON ct.comment_id = c.parent_id
+)
+SELECT * FROM CommentsTree;
+
+// solutions
+// 1. path enumeration
+CREATE TABLE Comments_Path (
+	comment_id SERIAL PRIMARY KEY,
+    path VARCHAR(1000),
+    comment TEXT NOT NULL
+);
+INSERT INTO Comments_Path (path, comment) VALUES("/1/4/6/7", "That fixed it");
+SELECT * FROM Comments_Path;
+
+// find all ancestors using path enumeration
+SELECT *
+FROM Comments_Path AS c 
+WHERE '/1/4/6/7' LIKE CONCAT(c.path, '%');
+
+// find descendants
+SELECT *
+FROM Comments_Path AS c 
+WHERE c.path LIKE '/1/4%';
+
+// count no of descendants
+SELECT COUNT(*) AS count
+FROM Comments_Path AS c 
+WHERE c.path LIKE '/1/4%'
+
+// inserting a new comment 
+INSERT INTO Comments_Path (comment) VALUES('Like what kind of input?');
+UPDATE Comments_Path
+SET path = CONCAT('/1/4', '/', LAST_INSERT_ID())
+WHERE comment_id = LAST_INSERT_ID();
+
+// another solution (elegant soln)
+// using a Closure table 
+CREATE TABLE Comments_Closure (
+	comment_id SERIAL PRIMARY KEY,
+    comment TEXT
+);
+
+CREATE TABLE TreePaths (
+	ancestor BIGINT UNSIGNED NOT NULL,
+    descendant BIGINT UNSIGNED NOT NULL,
+    PRIMARY KEY (ancestor, descendant),
+    FOREIGN KEY (ancestor) REFERENCES Comments_Closure(comment_id),
+    FOREIGN KEY (descendant) REFERENCES Comments_Closure(comment_id)
+);
+
+// insert comments data 
+INSERT INTO Comments_Closure (comment)
+	SELECT comment FROM Comments2;
+// add tree paths data 
+INSERT INTO TreePaths (ancestor, descendant)
+	VALUES(1,1), (1,2), (2,2), (1,3), (2,3), (3,3), (1,4), (4,4), (1,5), (4,5), (5,5), (1,6), (4,6), (6,6), (1,7), (4,7), (6,7), (7,7);
+
+// retrieve descendants 
+SELECT c.*
+FROM Comments_Closure AS c 
+	INNER JOIN TreePaths AS t
+	ON c.comment_id = t.descendant 
+WHERE t.ancestor = 4;
+
+// retrieve ancestors 
+SELECT c.*
+FROM Comments_Closure As c 
+	INNER JOIN TreePaths AS t 
+	ON c.comment_id = t.ancestor 
+WHERE t.descendant = 6;
+
+// inserting a new comment 
+// new comment with comment_id 8 is a descendant of comment_id 7
+INSERT INTO Comments_Closure (comment) VALUES ('Good work everyone');
+INSERT INTO TreePaths (ancestor, descendant)
+	SELECT t.ancestor, 8 
+	FROM TreePaths AS t 
+	WHERE t.descendant = 7
+	UNION ALL 
+		SELECT 8, 8;
+
+// delete comment with comment_id == 4 
+DELETE FROM TreePaths WHERE descendant = 4;
+DELETE FROM TreePaths WHERE ancestor = 4;
+DELETE FROM Comments_Closure WHERE comment_id = 4;
