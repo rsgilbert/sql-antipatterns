@@ -1,0 +1,54 @@
+// checking for mistakes
+// prepare data
+CREATE TABLE Bugs3(bug_id SERIAL PRIMARY KEY, status VARCHAR(10), description TEXT);
+CREATE TABLE BugStatus3(status VARCHAR(10) PRIMARY KEY);
+INSERT INTO BugStatus3(status) VALUES('open'), ('solved');
+INSERT INTO Bugs3(status, description) VALUES('open', 'system crash'), ('unknown', 'overheating'), ('solved', 'NullException');
+
+// query for invalid status data 
+SELECT b.*, bs.* FROM Bugs3 AS b LEFT OUTER JOIN BugStatus3 AS bs USING(status) WHERE bs.status IS NULL;
+
+// add Bug4 that uses a foreign key 
+CREATE TABLE Bugs4(bug_id SERIAL PRIMARY KEY, status VARCHAR(10), 
+	description TEXT,
+    FOREIGN KEY(status) REFERENCES BugStatus3(status)
+);
+INSERT INTO Bugs4(status, description) VALUES('open', 'system crash'), ('open', 'overheating'), ('solved', 'NullException');
+
+// unsolvable update problem 
+UPDATE BugStatus3 SET status = 'closed' WHERE status = 'solved';
+UPDATE Bugs4 SET status = 'closed' WHERE bug_id = 6;
+
+// solution
+// define ON UPDATE and ON DELETE behavior on the child tables 
+CREATE TABLE Bugs5(
+	bug_id SERIAL PRIMARY KEY, 
+    status VARCHAR(10) NOT NULL DEFAULT 'open', 
+	description TEXT,
+    FOREIGN KEY(status) REFERENCES BugStatus3(status)
+		ON UPDATE CASCADE
+        ON DELETE SET DEFAULT
+);
+INSERT INTO Bugs5(status, description) VALUES ('open', 'Very slow');
+
+// perform update of parent table 
+UPDATE BugStatus3 SET status = 'closed' WHERE status = 'solved';
+// try deleting 
+DELETE FROM BugStatus3  WHERE status = 'archived';
+
+// investigate ON DELETE CASCADE 
+CREATE TABLE Bugs6(
+	bug_id SERIAL PRIMARY KEY, 
+    status VARCHAR(10) NOT NULL DEFAULT 'open', 
+	description TEXT,
+    FOREIGN KEY(status) REFERENCES BugStatus3(status)
+		ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
+INSERT INTO Bugs6(status, description) VALUES ('archived', 'Very slow');
+INSERT INTO Bugs6(status, description) VALUES ('archived', 'Not opening');
+INSERT INTO Bugs6 (description) VALUES('seeing if default works');
+INSERT INTO Bugs6(status, description)
+SELECT status, description FROM Bugs5;
+
+DELETE FROM BugStatus3 WHERE status = 'archived';
