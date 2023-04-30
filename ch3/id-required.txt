@@ -1,0 +1,86 @@
+// create tables 
+CREATE TABLE Articles1 (
+	id SERIAL PRIMARY KEY,
+    article TEXT
+);
+
+CREATE TABLE Tags1 (
+	id  SERIAL PRIMARY KEY,
+    tag VARCHAR(100)
+);
+
+
+CREATE TABLE ArticleTags1(
+	id SERIAL PRIMARY KEY,
+    article_id BIGINT UNSIGNED NOT NULL,
+    tag_id BIGINT UNSIGNED NOT NULL,
+    FOREIGN KEY(article_id) REFERENCES Articles1(id),
+    FOREIGN KEY(tag_id) REFERENCES Tags1(id)
+);
+
+// insert data 
+INSERT INTO Articles1(article) VALUES('The story of Chinah the dragon'), ('Trumpet at a distance'), ('Love never lasts');
+INSERT INTO Tags1(tag) VALUES ('romance'), ('thriller'), ('adventure');
+
+SELECT * FROM Articles1;
+SELECT * FROM Tags1;
+
+INSERT INTO ArticleTags1(article_id, tag_id) VALUES (1, 2), (1, 3), (2, 2), (3, 1), (3, 3);
+SELECT * FROM ArticleTags1;
+
+// queries 
+// count no of articles for a given tag 
+SELECT at1.tag_id, t.tag, COUNT(*) AS articles_per_tag 
+FROM ArticleTags1 AS at1 INNER JOIN Tags1 AS t ON at1.tag_id = t.id
+GROUP BY at1.tag_id ;
+
+
+// antipattern
+// redundant key 
+
+CREATE TABLE Bugs1 (
+	id SERIAL PRIMARY KEY,
+    bug_id VARCHAR(10),
+    description VARCHAR (1000)
+);
+INSERT INTO Bugs1(bug_id, description) VALUES ('B-JS-100', 'JS bug in web dev');
+
+// define a unique key to avoid duplicates
+CREATE TABLE BugsProducts2 (
+	id SERIAL PRIMARY KEY,
+    bug_id BIGINT UNSIGNED NOT NULL,
+    product_id BIGINT UNSIGNED NOT NULL,
+    UNIQUE KEY (bug_id, product_id)
+);
+// insert values to test unique key 
+INSERT INTO BugsProducts2 (
+	bug_id, product_id
+)
+VALUES (1,1);
+
+// using USING 
+SELECT * FROM Articles1 AS a1 JOIN ArticleTags1 AS at1 ON a1.id = at1.article_id;
+// define another table for articles that uses article_id as pk
+CREATE TABLE Articles2 (
+	article_id SERIAL PRIMARY KEY,
+    article TEXT
+);
+INSERT INTO Articles2(article_id, article)
+SELECT * FROM Articles1;
+// querying using USING
+SELECT * FROM Articles2 AS a2 JOIN ArticleTags1 USING(article_id);
+
+
+// define a table with compound key 
+CREATE TABLE ArticleTags3 (
+	bug_id INT NOT NULL,
+    product_id INT NOT NULL,
+    PRIMARY KEY (bug_id, product_id)
+);
+
+// insert into ArticleTags3
+INSERT INTO ArticleTags3(bug_id, product_id) VALUES(1, 1);
+
+
+
+
