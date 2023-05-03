@@ -1,0 +1,183 @@
+//define schema 
+CREATE TABLE Issues (
+	issue_id SERIAL PRIMARY KEY
+);
+INSERT INTO Issues(issue_id) VALUES(100);
+CREATE TABLE IssueAttributes (
+	issue_id BIGINT UNSIGNED NOT NULL,
+    attr_name VARCHAR(100) NOT NULL,
+    attr_value VARCHAR(100),
+    PRIMARY KEY (issue_id, attr_name),
+    FOREIGN KEY (issue_id) REFERENCES Issues(issue_id)
+);
+
+INSERT INTO IssueAttributes (issue_id, attr_name, attr_value)
+VALUES
+	(100, 'product', '1'),
+    (100, 'date_product', '2009-06-01'),
+    (100, 'status', 'NEW'),
+    (100, 'description', 'Failing to save record'),
+    (100, 'reported_by', 'James'),
+    (100, 'version_affected', '1.0'),
+    (100, 'severity', 'loss of functionality'),
+    (100, 'priority', 'high');
+
+// insert second issue 
+INSERT INTO Issues (issue_id) VALUES (200);
+INSERT INTO IssueAttributes (issue_id, attr_name, attr_value)
+VALUES
+	(200, 'product', '2'),
+    (200, 'date_product', '2012-06-01'),
+    (200, 'status', 'IN_PROGRESS'),
+    (200, 'description', 'App crashes'),
+    (200, 'reported_by', 'Milly'),
+    (200, 'version_affected', '1.0'),
+    (200, 'severity', 'non working app'),
+    (200, 'priority', 'high');
+
+// query for issues reported by date 
+SELECT issue_id, attr_value AS 'date_reported'
+FROM IssueAttributes 
+WHERE attr_name = 'date_product';
+
+// solutions 
+
+// solution 1
+// single table inheritence
+CREATE TABLE Issues_STE (
+	issue_id SERIAL PRIMARY KEY,
+    description VARCHAR(100),
+    issue_type VARCHAR(10), -- BUG or FEATURE
+    severity VARCHAR(20), -- only for bugs
+    version_affected VARCHAR(20), -- only for bugs
+    sponsor VARCHAR(50) -- only for features
+);
+INSERT INTO Issues_STE (description, issue_type, severity, version_affected)
+	VALUES('Incorrect date format', 'BUG', 'MEDIUM', '1.0'),
+		('http over https', 'BUG', 'HIGH', '1.1'),
+        ('missing address in beneficiary details', 'BUG', 'LOW', '1.0');
+
+INSERT INTO Issues_STE (description, issue_type, sponsor)
+VALUES('Support cross border transfers', 'FEATURE', 'UEGCL'),
+    ('Implement payments for CORPS', 'FEATURE', 'Mildmay'),
+    ('Add beneficiary address to expected fields', 'FEATURE', 'IDRC');
+
+
+// concrete table inheritence 
+CREATE TABLE Bugs_CTE (
+	issue_id SERIAL PRIMARY KEY,
+    description VARCHAR(100),
+	severity VARCHAR(20),
+    version_affected VARCHAR(20)
+);
+
+CREATE TABLE FeatureRequests_CTE (
+	issue_id SERIAL PRIMARY KEY,
+    description VARCHAR(100),
+    sponsor VARCHAR(20)
+);
+
+CREATE TABLE Bugs_CTE (
+	issue_id SERIAL PRIMARY KEY,
+    description VARCHAR(100),
+	severity VARCHAR(20),
+    version_affected VARCHAR(20)
+);
+
+CREATE TABLE FeatureRequests_CTE (
+	issue_id SERIAL PRIMARY KEY,
+    description VARCHAR(100),
+    sponsor VARCHAR(20)
+);
+
+// define a view for all issues 
+CREATE VIEW AllIssuesV AS 
+	SELECT 'bug' AS issue_type, b.issue_id, b.description, b.severity, b.version_affected,  NULL AS sponsor
+		FROM Bugs_CTE AS b 
+    UNION ALL
+    SELECT  'feature' AS issue_type, f.issue_id, f.description, NULL AS severity, NULL AS version_affected, f.sponsor
+		FROM FeatureRequests_CTE AS f;
+        
+SELECT * FROM AllIssuesV;
+
+// class table inheritence
+CREATE TABLE Issues_ClassTI (
+	issue_id SERIAL PRIMARY KEY,
+    description VARCHAR(100)
+);
+
+CREATE TABLE Bugs_ClassTI (
+	issue_id BIGINT UNSIGNED PRIMARY KEY,
+    severity VARCHAR(20),
+    version_affected VARCHAR(20),
+    FOREIGN KEY(issue_id) REFERENCES Issues_ClassTI(issue_id)
+    ON DELETE CASCADE
+);
+
+CREATE TABLE FeatureRequests_ClassTI (
+	issue_id BIGINT UNSIGNED PRIMARY KEY,
+    sponsor VARCHAR(50),
+    FOREIGN KEY (issue_id) REFERENCES Issues_ClassTI(issue_id)
+    ON DELETE CASCADE
+);
+
+
+
+INSERT INTO Issues_ClassTI(description) 
+	VALUES ('Incorrect date format');
+
+INSERT INTO Bugs_ClassTI(issue_id, severity, version_affected)
+	VALUES(LAST_INSERT_ID(), 'MEDIUM', '1.0');
+    INSERT INTO Issues_ClassTI(description) 
+	VALUES ('http over https');
+
+INSERT INTO Bugs_ClassTI(issue_id, severity, version_affected)
+	VALUES(LAST_INSERT_ID(), 'HIGH', '1.1');
+    
+INSERT INTO Issues_ClassTI(description) 
+	VALUES ('missing address in beneficiary details');
+
+INSERT INTO Bugs_ClassTI(issue_id, severity, version_affected)
+	VALUES(LAST_INSERT_ID(), 'LOW', '1.0');
+INSERT INTO Issues_ClassTI(description) 
+	VALUES ('Support cross border transfers');
+
+INSERT INTO FeatureRequests_ClassTI(issue_id, sponsor)
+	VALUES(LAST_INSERT_ID(), 'UEGCL');
+
+INSERT INTO Issues_ClassTI(description) 
+	VALUES ('Implement payments for CORPS');
+
+INSERT INTO FeatureRequests_ClassTI(issue_id, sponsor)
+	VALUES(LAST_INSERT_ID(), 'Mildmay');
+    
+
+INSERT INTO Issues_ClassTI(description) 
+	VALUES ('Add beneficiary address to expected fields');
+
+INSERT INTO FeatureRequests_ClassTI(issue_id, sponsor)
+	VALUES(LAST_INSERT_ID(), 'IDRC');
+    
+SELECT * FROM Issues_ClassTI;
+SELECT * FROM Bugs_ClassTI;
+SELECT * FROM FeatureRequests_ClassTI;
+
+// define view to query from all tables at once 
+CREATE VIEW AllIssues_ClassTI AS 
+SELECT *
+FROM Issues_ClassTI AS i 
+	LEFT OUTER JOIN Bugs_ClassTI AS b USING(issue_id)
+    LEFT OUTER JOIN FeatureRequests_ClassTI AS f USING(issue_id); 
+
+
+// store semistructured data in a blob 
+CREATE TABLE Issues_Semistructured (
+	issue_id SERIAL PRIMARY KEY,
+    attributes TEXT NOT NULL
+);
+INSERT INTO Issues_semistructured (attributes) VALUES ('{"description":"Foul play","version_affected":"1.0"}');
+SELECT * FROM Issues_semistructured;
+
+
+// working with EAV 
+SELECT * FROM IssueAttributes WHERE issue_id = 200;
