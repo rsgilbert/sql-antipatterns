@@ -1,0 +1,204 @@
+// define polymorphic association
+CREATE TABLE Comments_DP (
+	comment_id SERIAL PRIMARY KEY,
+    issue_type VARCHAR(20), -- bugs or featurerequests
+    issue_id BIGINT UNSIGNED NOT NULL,
+    comment TEXT
+)
+
+// insert data 
+INSERT INTO Comments_DP (issue_type, issue_id, comment)
+	VALUES("FeatureRequests_CTE", 1, "I am still working on supporting cross borders"),
+		("Bugs_CTE", 2, "Implemented https"),
+        ("FeatureRequests_CTE", 3, "Added ben details"),
+        ("FeatureRequest_CTE", 3, "More details added");
+
+// correct mistake made in last row 
+UPDATE Comments_DP SET issue_type = 'FeatureRequests_CTE' WHERE comment_id = 4;
+
+// query feature requests including their comments 
+SELECT *
+	FROM FeatureRequests_CTE AS f JOIN Comments_DP AS c 
+    ON (f.issue_id = c.issue_id AND c.issue_type = 'FeatureRequests_CTE');
+
+
+// query comments, bugs and feature requests 
+SELECT *
+	FROM Comments_DP AS c 
+	LEFT OUTER JOIN bugs_classti AS b
+    ON (b.issue_id = c.issue_id AND c.issue_type = 'Bugs_CTE')
+    LEFT OUTER JOIN featurerequests_classti AS f 
+	ON (f.issue_id = c.issue_id AND c.issue_type = 'FeatureRequests_CTE');
+
+
+// non object oriented example 
+// relationship between addresses and users, 
+// also, relationship between addresses and orders
+
+// create addresses, orders and customers tables
+CREATE TABLE Addresses (
+	address_id SERIAL PRIMARY KEY,
+    parent VARCHAR(20),
+    parent_id BIGINT UNSIGNED NOT NULL,
+    address TEXT 
+);
+CREATE TABLE orders (
+	order_id SERIAL PRIMARY KEY,
+    shipping_address_id BIGINT unsigned,
+    description TEXT,
+    FOREIGN KEY (shipping_address_id) REFERENCES Addresses (address_id)
+);
+
+CREATE TABLE customers (
+	customer_id SERIAL PRIMARY KEY,
+    address_id BIGINT UNSIGNED,
+    name TEXT,
+    FOREIGN KEY (address_id) REFERENCES Addresses (address_id)
+);
+
+INSERT INTO addresses (parent, parent_id, address) VALUES('customers', 1, 'Gilbert stays in Muyenga'), 
+	('customers', 2, 'Robert stays in Kawempe'), ('customers', 3, 'Cash stays anywhere');
+   
+INSERT INTO addresses (parent, parent_id, address) VALUES('orders', 1, 'Deliver pilao to nsambya'), 
+	('orders', 2, 'Chips to be sent to Gulu'), ('orders', 3, 'Cookies are for someone in Nairobi');
+
+
+UPDATE customers SET address_id = 1  WHERE customer_id = 1;
+UPDATE customers SET address_id = 2 WHERE customer_id = 2;
+UPDATE customers SET address_id = 3  WHERE customer_id = 3;
+UPDATE orders SET address_id = 4  WHERE order_id = 1;
+UPDATE orders SET address_id = 5  WHERE order_id = 2;
+UPDATE orders SET address_id = 6  WHERE order_id = 3;
+
+// query for address information including child data eg information about customers and information about orders 
+SELECT * 
+	FROM addresses AS A
+    LEFT OUTER JOIN orders AS o
+		ON a.address_id = o.shipping_address_id AND a.parent = 'orders'
+    LEFT OUTER JOIN customers AS c 
+		ON a.address_id = c.address_id AND a.parent = 'customers' 
+
+
+
+// solution 1 
+// using intersection tables 
+Create Table Comments_IT(
+	comment_id SERIAL PRIMARY KEY,
+    comment TEXT
+);
+
+CREATE TABLE BugsComments (
+	issue_id BIGINT UNSIGNED NOT NULL,
+    comment_id BIGINT UNSIGNED NOT NULL,
+    PRIMARY KEY (issue_id, comment_id),
+    FOREIGN KEY (issue_id) REFERENCES Bugs_CTE(issue_id),
+    FOREIGN KEY (comment_id) REFERENCES Comments_IT(comment_id)
+);
+    
+CREATE TABLE FeatureRequestsComments (
+	issue_id BIGINT UNSIGNED NOT NULL,
+    comment_id BIGINT UNSIGNED NOT NULL,
+    PRIMARY KEY (issue_id,comment_id),
+    FOREIGN KEY (issue_id) REFERENCES FeatureRequests_CTE(issue_id),
+    FOREIGN KEY (comment_id) REFERENCES Comments_IT(comment_id)
+);
+    
+// insert comments 
+INSERT INTO Comments_IT(comment) VALUES('Have you tried changing your pc date format');
+INSERT INTO BugsComments(issue_id, comment_id) VALUES(1, LAST_INSERT_ID());
+
+INSERT INTO Comments_IT(comment) VALUES('We will need an SSL to setup https');
+INSERT INTO BugsComments(issue_id, comment_id) VALUES(2, LAST_INSERT_ID());
+
+INSERT INTO Comments_IT(comment) VALUES('Please buy an SLA certificate first');
+INSERT INTO BugsComments(issue_id, comment_id) VALUES(2, LAST_INSERT_ID());
+
+
+INSERT INTO Comments_IT(comment) VALUES('What is wrong with http?');
+INSERT INTO BugsComments(issue_id, comment_id) VALUES(2, LAST_INSERT_ID());
+
+INSERT INTO Comments_IT(comment) VALUES('Why do you need the address?');
+INSERT INTO BugsComments(issue_id, comment_id) VALUES(3, LAST_INSERT_ID());
+
+INSERT INTO Comments_IT(comment) VALUES('Can you prepare a template for beneficiary lines');
+INSERT INTO BugsComments(issue_id, comment_id) VALUES(3, LAST_INSERT_ID());
+
+
+INSERT INTO comments_IT(comment) VALUES('For which banks do you want to support cross border transfers');
+INSERT INTO FeatureRequestsComments VALUES(1, LAST_INSERT_ID());
+
+INSERT INTO comments_IT(comment) VALUES('How are payments currently working for CORPS?');
+INSERT INTO FeatureRequestsComments VALUES(2, LAST_INSERT_ID());
+
+INSERT INTO comments_IT(comment) VALUES('What is CORPS?');
+INSERT INTO FeatureRequestsComments VALUES(2, LAST_INSERT_ID());
+
+
+// query for bugs and comments
+SELECT * FROM BugsComments AS bc
+	INNER JOIN Comments_IT AS c 
+		ON bc.comment_id = c.comment_id;
+       
+// query for feature requests and comments 
+SELECT * FROM FeatureRequestsComments AS fc
+	INNER JOIN Comments_IT AS c 
+		ON fc.comment_id = c.comment_id;
+
+// query for all comments and their details 
+        
+SELECT * 
+FROM Comments_IT AS c
+LEFT OUTER JOIN (BugsComments JOIN Bugs_CTE USING(issue_id)) USING (comment_id)
+LEFT OUTER JOIN (FeatureRequestsComments JOIN FeatureRequests_CTE USING(issue_id)) USING (comment_id);
+
+SELECT comment_id, comment, fcte.description AS 'FR description', bcte.description AS 'Bug description'
+FROM Comments_IT AS c
+LEFT OUTER JOIN (BugsComments AS bc JOIN Bugs_CTE AS bcte USING(issue_id)) USING (comment_id) 
+LEFT OUTER JOIN (FeatureRequestsComments JOIN FeatureRequests_CTE AS fcte USING(issue_id))  USING (comment_id);
+
+// merging lanes
+// make result appear as if you had stored the data in a single table 
+        
+SELECT comment_id,
+	COALESCE(fcte.issue_id, bcte.issue_id) AS 'Issue Id',
+	COALESCE(fcte.description, bcte.description) AS 'Issue description',
+    comment
+FROM Comments_IT AS c
+LEFT OUTER JOIN (BugsComments AS bc JOIN Bugs_CTE AS bcte USING(issue_id)) USING (comment_id) 
+LEFT OUTER JOIN (FeatureRequestsComments JOIN FeatureRequests_CTE AS fcte USING(issue_id))  USING (comment_id);
+
+
+
+// solution 2
+// use a common supper table for bugs and feature requests
+// This uses the pattern for class based table inheritance 
+SELECT * FROM issues_classti;
+SELECT * FROM bugs_classti;
+SELECT * FROM featurerequests_classti;
+
+CREATE TABLE Comments_classti (
+	comment_id SERIAL PRIMARY KEY,
+    issue_id BIGINT UNSIGNED NOT NULL,
+    comment TEXT,
+    FOREIGN KEY (issue_id) REFERENCES issues_classti(issue_id)
+);
+INSERT INTO comments_classti (issue_id, comment)
+	VALUES(1, 'Dont know how to fix the date format'),
+    (4, 'I will need to talk to Stanbic about crossborder transfers'),
+    (5, 'When will mildmay rollout corps?'),
+    (3, 'Can i default the address to Kampala');
+SELECT * FROM Comments_classti;
+
+
+// select comments and issues 
+SELECT c.*, i.description AS 'issue_description', b.* , f.*
+FROM Comments_classti AS c
+	LEFT OUTER JOIN issues_classti AS i
+		USING(issue_id)
+	LEFT OUTER JOIN bugs_classti AS b
+		USING(issue_id)
+    LEFT OUTER JOIN featurerequests_classti AS f 
+		USING (issue_id);
+
+// select bugs and their comments 
+SELECT * FROM bugs_classti LEFT OUTER JOIN comments_classti USING(issue_id)
