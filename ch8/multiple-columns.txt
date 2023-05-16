@@ -1,0 +1,56 @@
+// Multiple columns antipattern
+CREATE TABLE bugs_mc (
+	bug_id SERIAL PRIMARY KEY,
+    description VARCHAR(1000),
+    tag1 VARCHAR(20),
+    tag2 VARCHAR(20),
+    tag3 VARCHAR(20)
+);
+
+INSERT INTO bugs_mc(description) 
+SELECT description FROM bugs1;
+
+UPDATE bugs_mc 
+SET tag2 = 'dev', tag3 = 'crash'
+wHERE bug_id = 5;
+SELECT * FROM bugs_mc;
+
+// find bugs to do with crash 
+SELECT * FROM bugs_mc 
+WHERE tag1 = 'crash' OR tag2 = 'crash' OR tag3 = 'crash';
+
+// use nullif to make a column cell null if it currently has the value performance 
+UPDATE bugs_mc 
+	SET tag1 = NULLIF(tag1, 'performance'),
+    tag2 = NULLIF(tag2, 'performance'),
+    tag3 = NULLIF(tag3, 'performance')
+WHERE bug_id = 1;
+
+// add another column
+ALTER TABLE bugs_mc ADD COLUMN tag4 VARCHAR(20);
+
+
+// solution
+// use dependant tables
+CREATE TABLE bugs_dt (bug_id SERIAL PRIMARY KEY,
+	description VARCHAR(100));
+    
+CREATE TABLE tags_dt (bug_id BIGINT UNSIGNED NOT NULL,
+	tag VARCHAR(20),
+    PRIMARY KEY (bug_id, tag),
+    FOREIGN KEY (bug_id) REFERENCES bugs_dt (bug_id)
+);
+
+// insert data 
+INSERT INTO tags_dt (bug_id, tag)
+	VALUES (1, 'crash'), (3, 'reports'),
+		(4, 'cosmetic'), (4, 'dev'), (4, 'crash'),
+        (5, 'dev'), (5,'crash');
+SELECT * FROM tags_dt;
+
+// find bugs to do with crash 
+SELECT * FROM bugs_dt INNER JOIN tags_dt USING(bug_id) WHERE tags_dt.tag = 'crash';
+
+
+// delete a tag
+DELETE FROM tags_dt WHERE bug_id = 3 AND tag= 'reports';
