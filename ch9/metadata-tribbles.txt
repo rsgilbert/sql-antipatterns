@@ -1,0 +1,61 @@
+// metadata tribbles
+
+// table tribbles
+// create table for 2023 bugs
+// put a check contraint for date_reported
+CREATE TABLE bugs_2023
+(
+	bug_id SERIAL PRIMARY KEY,
+    description TEXT,
+    date_reported DATE CHECK (EXTRACT(YEAR FROM date_reported) = 2023)
+);
+// insert data 
+INSERT INTO bugs_2023 (description, date_reported) VALUES('jan bug', 20231125);
+
+// extract key word 
+SELECT EXTRACT(DAY FROM '2021-01-21');
+
+CREATE TABLE bugs_2022
+(
+	bug_id SERIAL PRIMARY KEY,
+    description TEXT,
+    date_reported DATE CHECK (EXTRACT(YEAR FROM date_reported) = 2022)
+);
+
+// select from multiple tables 
+SELECT * FROM bugs_2022 
+	UNION 
+    SELECT * FROM bugs_2023;
+
+INSERT INTO bugs_2022 (bug_id, description, date_reported)
+	VALUES(DEFAULT, 'first 2022 bug', 20220501), (DEFAULT, 'second 2022 bug', 20220603);
+
+// column tribbles
+CREATE TABLE BugHistory (
+	id SERIAL PRIMARY KEY,
+    bugs_fixed_2020 INT,
+    bugs_fixed_2021 INT,
+    bugs_fixed_2022 INT,
+    bugs_fixed_2023 INT
+);
+
+INSERT INTO BugHistory (bugs_fixed_2020, bugs_fixed_2021, bugs_fixed_2022, bugs_fixed_2023) 
+	VALUES(0, 5, 10, 7);
+
+
+
+
+// create partions 
+
+CREATE TABLE bugs_hp2 (
+	bug_id SERIAL,
+    date_reported DATE,
+    date_reported_year INT,
+    description TEXT,
+    PRIMARY KEY(bug_id)
+) PARTITION BY RANGE(bug_id) (
+	PARTITION p0 VALUES LESS THAN (2),
+    PARTITION p1 VALUES LESS THAN (4),
+    PARTITION p2 VALUES LESS THAN (6),
+    PARTITION p3 VALUES LESS THAN (10)
+);
