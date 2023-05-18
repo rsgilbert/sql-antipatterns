@@ -1,4 +1,5 @@
 // metadata tribbles
+// Dont let data spawn metadata 
 
 // table tribbles
 // create table for 2023 bugs
@@ -44,9 +45,10 @@ INSERT INTO BugHistory (bugs_fixed_2020, bugs_fixed_2021, bugs_fixed_2022, bugs_
 
 
 
+// solutions
+// create partions if you want to achieve query performance
 
-// create partions 
-
+// horizontal partitioning 
 CREATE TABLE bugs_hp2 (
 	bug_id SERIAL,
     date_reported DATE,
@@ -59,3 +61,46 @@ CREATE TABLE bugs_hp2 (
     PARTITION p2 VALUES LESS THAN (6),
     PARTITION p3 VALUES LESS THAN (10)
 );
+
+// vertical partitioning 
+// bad 
+CREATE TABLE products_vpbad (
+	product_id SERIAL PRIMARY KEY,
+    name VARCHAR (20),
+    installer_image BLOB
+);
+
+INSERT INTO products_vpbad (name) VALUES('Nodejs'), ('GTA'), ('Need for speed');
+
+// good / solution 
+
+CREATE TABLE products_vpgood (
+	product_id SERIAL PRIMARY KEY,
+    name VARCHAR (20)
+);
+INSERT INTO products_vpgood (name) 
+	SELECT name FROM products_vpbad;
+
+CREATE TABLE product_installers_vpgood (
+	product_id BIGINT UNSIGNED NOT NULL,
+    installer_image BLOB,
+    FOREIGN KEY(product_id) REFERENCES products_vpgood(product_id)
+);
+SELECT * FROM products_vpgood LEFT JOIN product_installers_vpgood USING(product_id);
+
+
+// solution to metadata column tribbles 
+// add a column for year
+CREATE TABLE bughistory_good (
+    year SMALLINT PRIMARY KEY,
+    bugs_fixed INT
+);
+
+INSERT INTO bughistory_good (year, bugs_fixed) VALUES (2020, 5), (2021, 8), (2022, 50), (2023, 81);
+
+
+
+
+
+
+
