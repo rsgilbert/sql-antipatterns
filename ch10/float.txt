@@ -1,0 +1,102 @@
+// float antipattern 
+
+
+CREATE TABLE accounts_float (
+	account_id SERIAL PRIMARY KEY,
+    name VARCHAR(50),
+    hourly_rate FLOAT
+);
+    
+CREATE TAble bugs_float (
+	bug_id SERIAL PRIMARY KEY,
+    description TEXT,
+    assigned_to BIGINT UNSIGNED NOT NULL,
+    hours FLOAT,
+    FOREIGN KEY(Assigned_to) REFERENCES accounts_float(account_id)
+);
+
+INSERT INTO accounts_float (name, hourly_rate) VALUES ('Gilbert', 59.95);
+INSERT INTO bugs_float (description, assigned_to, hours) VALUES ('handling calculations', LAST_INSERT_ID(), 1000);
+INSERT INTO accounts_float (name, hourly_rate) VALUES ('Mark', 20.95);
+INSERT INTO bugs_float (description, assigned_to, hours) VALUES ('crash on opening app', LAST_INSERT_ID(), 50);
+
+// calculate cost per bug 
+SELECT b.bug_id, b.description, b.hours, a.hourly_rate, (b.hours * a.hourly_rate) AS cost_per_bug
+FROM bugs_float AS b 
+	INNER JOIN accounts_float AS a ON b.assigned_to = a.account_id; 
+
+// filter accounts_float by the same hourly hourly_rate
+// notice that you get an empty set 
+SELECT * FROM accounts_float WHERE hourly_rate = 59.95;
+
+// however, below query will give you a result 
+SELECT * FROM accounts_float WHERE hourly_rate = 59.95000076293945;
+
+// filter table treating close floating point values as effectively equal 
+SELECT *, ABS(hourly_rate - 59.95) FROM accounts_float WHERE ABS(hourly_rate - 59.95) < 0.0001;
+
+
+// calculate aggregate 
+SELECT SUM(b.hours * a.hourly_rate) AS project_cost 
+FROM bugs_float AS b INNER JOIN accounts_float AS a ON b.assigned_to = a.account_id;
+
+
+// 0.999 * 1 a thousand times 
+INSERT INTO accounts_float (name, hourly_rate) VALUES ('Kenny', 0.999);
+INSERT INTO accounts_float (name, hourly_rate) VALUES ('Kenny', 0.999);
+INSERT INTO accounts_float (name, hourly_rate) VALUES ('Kenny', 0.999);
+INSERT INTO accounts_float (name, hourly_rate) VALUES ('Kenny', 0.999);
+INSERT INTO accounts_float (name, hourly_rate) VALUES ('Kenny', 0.999);
+INSERT INTO accounts_float (name, hourly_rate) VALUES ('Kenny', 0.999);
+INSERT INTO accounts_float (name, hourly_rate) VALUES ('Kenny', 0.999);
+INSERT INTO accounts_float (name, hourly_rate) 
+SELECT name, hourly_rate FROM accounts_float;
+
+// calculate aggregate 
+// it starts showing wrong results after around 110,000 rows 
+SELECT  SUM(hourly_rate * 1) AS total, COUNT(*) * 0.999 AS expected_total, COUNT(*) AS total_rows FROM accounts_float;
+
+// use of REAL data type 
+// seems ok but book discourages it
+CREATE TABLE my_real (id SERIAL PRIMARY KEY, num REAL);
+INSERT INTO my_real (num) VALUES (20.95), (0.999);
+SELECT *, num * 1000, 1 * num FROM my_real;
+SELECT * FROM my_real WHERE num = 20.95;
+SELECT * FROM my_real WHERE num = 0.999;
+
+
+// solution
+// use NUMERIC or DECIMAL
+CREATE TABLE accounts_numeric (
+	account_id SERIAL PRIMARY KEY,
+    name VARCHAR(50),
+    hourly_rate NUMERIC(9,2)
+);
+
+CREATE TABLE bugs_numeric (
+	bug_id SERIAL PRIMARY KEY,
+    description TEXT,
+    hours NUMERIC(9,2)
+);
+INSERT INTO accounts_numeric(name, hourly_rate) VALUES ('Gil3', 1234567.89);
+
+INSERT INTO accounts_numeric(name, hourly_rate) VALUES ('Peter', 59.95);
+SELECT * FROM accounts_numeric WHERE hourly_rate = 59.95;
+INSERT INTO bugs_numeric (description, hours) VALUES ('crash', 0.1);
+
+SELECT *, a.hourly_rate * b.hours FROM accounts_numeric AS a JOIN bugs_numeric AS b;
+
+// using decimal 
+// DECIMAL == DEC == NUMERIC
+
+// no arguments provided to DECIMAL, will use zero decimal places
+CREATE TABLE sizes1 (size DECIMAL); 
+
+// expects 3 decimal places (warning if more) , expects only one digit on the left handside of decimal place (error if more)
+CREATE TABLE sizes2 (size DECIMAL(4,3));
+INSERT INTO sizes2 (size) VALUES (5.999), (0.92), (3.152);
+SELECT * FROM sizes2;
+
+CREATE TABLE sizes3 (size DEC(4,2));
+CREATE TABLE sizes4 (size DEC(16,4));
+
