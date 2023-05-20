@@ -1,0 +1,81 @@
+// flavors
+
+// quote:
+Science is feasible when the variables are few and can be 
+enumerated, when their combinations are distinct and clear. Paul Valery 
+
+CREATE TABLE contacts_flavors (
+	name VARCHAR (20),
+	salutation VARCHAR (4)
+	CHECK (salutation IN ('Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Rev.'))
+);
+
+INSERT INTO contacts_flavors (name, salutation)
+	VALUES('James', 'Mr.');
+
+// using enum 
+CREATE TABLE contacts2 (
+	name VARCHAR(50), 
+    salutation ENUM('Mr', 'Mrs', 'Dr', 'Sir')
+);
+INSERT INTO contacts2 (name, salutation) VALUES ('Gilbert', 'Dr'), ('John', 'Sir');
+
+// query for enum details 
+SELECT column_type
+FROM information_schema.columns
+WHERE table_name = 'contacts2'
+	AND column_name = 'salutation';
+
+// modify column that uses an enum 
+ALTER TABLE contacts2 MODIFY COLUMN salutation ENUM('Mr', 'Mrs', 'Ms', 'Dr', 'Prof', 'Sir');
+
+ETL: extract, transform, load 
+
+// solution
+// declare a lookup table 
+
+
+CREATE TABLE salutations (salutation VARCHAR(5) PRIMARY KEY);
+
+CREATE TABLE contacts_salut (
+	name VARCHAR(50) PRIMARY KEY, 
+    salutation VARCHAR(5),
+    FOREIGN KEY (salutation) REFERENCES salutations (salutation)
+);
+INSERT INTO salutations (salutation) VALUES ('Mrs.'), ('Mr.'), ('Dr.');
+
+INSERT INTO contacts_salut (name, salutation) VALUES('Jeniffer', 'Mrs.');
+SELECT * FROM salutations;
+SELECT * FROM contacts_salut;
+
+// add on update cascade constraint
+// first see existing constraint so we drop it 
+SELECT * 
+FROM information_schema.table_constraints
+WHERE table_name = 'contacts_salut';
+// drop the constraint 
+ALTER TABLE contacts_salut DROP CONSTRAINT contacts_salut_ibfk_1;
+
+// define new constraint 
+ALTER TABLE contacts_salut
+ADD CONSTRAINT contacts_salut_fk1 
+	FOREIGN KEY(salutation) REFERENCES salutations (salutation)
+		ON UPDATE CASCADE;
+
+// test the new constraint 
+UPDATE salutations
+SET salutation = 'MD'
+WHERE salutation = 'Dr.';
+
+// add a column for active
+ALTER TABLE salutations ADD COLUMN active ENUM('INACTIVE', 'ACTIVE') NOT NULL DEFAULT 'ACTIVE';
+
+// make one of the salutations inactive 
+UPDATE salutations 
+SET active = 'INACTIVE'
+WHERE salutation = 'MD';
+
+// query for active salutations 
+SELECT * FROM salutations WHERE active = 'ACTIVE';
+
+
