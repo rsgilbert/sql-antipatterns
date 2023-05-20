@@ -1,0 +1,15 @@
+// how to correct store files 
+
+// use BLOB
+CREATE TABLE screenshots (id SERIAL PRIMARY KEY, filename VARCHAR(100), image BLOB);
+
+// insert data 
+INSERT INTO screenshots2 (filename, image)
+VALUES ('test.txt', LOAD_FILE('C:\Users\SSG\Pictures\download.png'));
+INSERT INTO screenshots2 (filename, image)
+VALUES ('SQL Antipatterns.pdf', LOAD_FILE('C:/Users/SSG/Documents/books/SQL Antipatterns.pdf'));
+
+// to export the data 
+// first comment the line about secure-file-priv in my.ini located at C:\ProgramData\MySQL\MySQL Server 8.0
+
+UPDATE screenshots2 SET image = LOAD_FILE('D:/Gilbert/mysql/sql-antipatterns/ch9/metadata-tribbles.txt') WHERE id = 2;

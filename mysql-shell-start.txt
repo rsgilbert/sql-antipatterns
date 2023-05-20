@@ -1,0 +1,10 @@
+// open mysql shell by searching in pc taskbar search bar 
+
+// run 
+\sql 
+\connect root@localhost
+use sqlantipatterns
+show tables;
+
+// there you go 
+
