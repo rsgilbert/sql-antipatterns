@@ -1,0 +1,43 @@
+// fear of the unknown 
+SELECT *, CONCAT(account_name , ' ' , first_name) AS fullname FROM accounts;
+
+// add middle initial
+ALTER TABLE accounts ADD COLUMN middle_initial CHAR(2);
+UPDATE accounts SET middle_initial = 'S.' WHERE account_id = 1;
+SELECT *, CONCAT(account_name , ' ' , middle_initial, ' ', first_name) AS fullname FROM accounts;
+
+
+// getting NULL
+SELECT DAY('2005-12-201');
+SELECT NULL + 10, 3 + 5 AS sm;
+
+// trying to avoid null 
+CREATE TABLE accounts_nonull(
+	account_id SERIAL PRIMARY KEY,
+    hourly_rate NUMERIC(9,2) NOT NULL
+);
+INSERT INTO accounts_nonull (hourly_rate) values(-1);
+
+// aggregation problems
+SELECT SUM(hourly_rate) FROM accounts_nonull ;
+SELECT SUM(hourly_rate) FROM accounts_nonull WHERE hourly_rate <> -1;
+
+// boolean logic 
+SELECT NULL and false;
+SELECT true or null;
+SELECT null is null;
+SELECT null is not null;
+SELECT 5 is not null;
+select 0 = 'NULL';
+select 1  = 'null';
+
+// mysql IS NOT DISTINCT FROM operator 
+SELECT * FROM accounts WHERE hourly_rate <=> 60;
+
+// support default for a given column adhoc 
+// use COALESCE 
+SELECT *, CONCAT(account_name , COALESCE(CONCAT(' ' , middle_initial, ' '), ' '), first_name) AS fullname FROM accounts;
+// use IFNULL 
+SELECT *, CONCAT(account_name , IFNULL(CONCAT(' ' , middle_initial, ' '), ' '), first_name) AS fullname FROM accounts;
+
+
