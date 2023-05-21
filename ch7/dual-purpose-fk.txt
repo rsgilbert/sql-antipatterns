@@ -201,4 +201,9 @@ FROM Comments_classti AS c
 		USING (issue_id);
 
 // select bugs and their comments 
-SELECT * FROM bugs_classti LEFT OUTER JOIN comments_classti USING(issue_id)
+SELECT * FROM bugs_classti LEFT OUTER JOIN comments_classti USING(issue_id);
+EXPLAIN SELECT * FROM bugs_classti LEFT OUTER JOIN comments_classti USING(issue_id);
+SELECT * FROM bugs_classti LEFT OUTER JOIN comments_classti USING(issue_id);
+SELECT * FROM bugs_classti LEFT OUTER JOIN comments_classti USING(issue_id)  WHERE version_affected = '1.0' AND comment LIKE '%the%';
+EXPLAIN SELECT * FROM bugs_classti LEFT OUTER JOIN comments_classti USING(issue_id) WHERE version_affected = '1.0' AND comment LIKE '%the%'  ;
+

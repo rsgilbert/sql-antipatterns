@@ -1,0 +1,98 @@
+// index shortgun
+
+
+CREATE table bugs_idxwaste(
+	bug_id SERIAL PRIMARY KEY,
+    summary VARCHAR(100),
+    status VARCHAR(10),
+    hours NUMERIC (9,2),
+    INDEX (bug_id),
+    INDEX (summary),
+    INDEX (hours),
+    INDEX (bug_id, status, summary)
+);
+
+// create index on hours,status 
+CREATE INDEX bugs_hours_status_idx ON bugs_idxwaste(hours, status);
+
+// insert data to study query performance
+INSERT INTO bugs_idxwaste (summary, status, hours) VALUES ('crash bug', 'FIXED', 3), ('null exception', 'PENDING', 1.5),
+	('autorestart of server fails', 'IN TESTING', 1);
+
+// run below query very many times
+INSERT INTO bugs_idxwaste (summary, status, hours)
+SELECT summary, status, hours FROM bugs_idxwaste;
+
+
+// query 
+SELECT * FROM bugs_idxwaste ORDER BY hours LIMIT 100000000  ;
+
+// add column for date reported 
+ALTER TABLE bugs_idxwaste ADD COLUMN date_reported DATE DEFAULT '2022-03-10';
+
+// create index on date_reported 
+CREATE INDEX bugs_idxwaste_date_reported_idx ON bugs_idxwaste(date_reported);
+
+// run query
+SELECT * FROM bugs_idxwaste WHERE MONTH(date_reported) = 3 LIMIT 10000000;
+
+// using UNION
+SELECT * FROM bugs_idxwaste WHERE hours = 1   
+UNION
+SELECT * FROM bugs_idxwaste WHERE status = 'IN TESTING'  LIMIT 10000000;
+
+// search 
+SELECT * FROM bugs_idxwaste WHERE status LIKE  '%IN TESTING%'  LIMIT 10000000;
+
+
+
+// selectivity
+selectivity is a statistic about a database index. It is the ratio of the number of distinct 
+values in the index to the total number of rows in the table 
+SELECT COUNT(DISTINCT status), COUNT(status), COUNT(DISTINCT status) / COUNT(status) AS selectivity FROM bugs_idxwaste ;
+
+
+// solution 
+MENTOR
+Measure 
+Explain
+Nominate
+Test
+Optimize 
+Rebuild 
+
+// MENTOR 
+long_query_time 
+SELECT @@long_query_time;
+
+
+
+// enter one more record 
+INSERT INTO bugs_idxwaste (summary, status, hours, date_reported)
+VALUES ('another one for explaining', 'OPEN', 2.5, current_date());
+
+// EXPLAIN 
+EXPLAIN SELECT * FROM bugs_idxwaste WHERE status = 'OPEN' OR hours = 2.5 ORDER BY status, summary;
+EXPLAIN SELECT * FROM bugs_idxwaste WHERE bug_id = 524267 ORDER BY bug_id DESC LIMIT 100000000  ;
+EXPLAIN SELECT * FROM bugs_idxwaste WHERE hours = 2.5 ORDER BY hours DESC LIMIT 100000000  ;
+EXPLAIN SELECT * FROM bugs_idxwaste WHERE status LIKE  '%OP%'  LIMIT 10000000;
+EXPLAIN SELECT * FROM bugs_idxwaste WHERE summary LIKE '%another one for explaining' ORDER BY bug_id DESC LIMIT 100000000  ;
+EXPLAIN SELECT * FROM bugs_classti LEFT OUTER JOIN comments_classti USING(issue_id);
+SELECT * FROM bugs_classti LEFT OUTER JOIN comments_classti USING(issue_id);
+SELECT * FROM bugs_classti LEFT OUTER JOIN comments_classti USING(issue_id)  WHERE version_affected = '1.0' AND comment LIKE '%the%';
+EXPLAIN SELECT * FROM bugs_classti LEFT OUTER JOIN comments_classti USING(issue_id) WHERE version_affected = '1.0' AND comment LIKE '%the%'  ;
+
+
+// NOMINATE 
+SELECT status, summary FROM bugs_idxwaste WHERE status = 'FIXED' LIMIT 10000000;
+EXPLAIN SELECT status, summary FROM bugs_idxwaste WHERE status = 'FIXED' LIMIT 10000000;
+
+CREATE INDEX bugs_idxwaste__status_idx ON bugs_idxwaste(status);
+
+// create covering index 
+CREATE INDEX bugs_idxwaste__status_summary ON bugs_idxwaste (status,summary);
+
+
+
+// REBUILD
+optimize table bugs_idxwaste;
