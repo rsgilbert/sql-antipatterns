@@ -1,0 +1,5 @@
+// random selection 
+
+// antipattern
+// sort data randomly
+SELECT * FROM bugs_gv ORDER BY RAND() ;
