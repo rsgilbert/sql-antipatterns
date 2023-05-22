@@ -1,0 +1,118 @@
+CREATE TABLE products_gv (
+	product_id SERIAL PRIMARY KEY,
+    name VARCHAR(50)
+);
+CREATE TABLE bugs_gv (
+	bug_id SERIAL PRIMARY KEY,
+    product_id BIGINT UNSIGNED NOT NULL,
+    description TEXT,
+    date_reported DATE,
+    FOREIGN KEY (product_id) REFERENCES products_gv (product_id)
+);
+INSERT INTO products_gv (name) VALUES ('SGMS'), ('CORPS'), ('Bank integration');
+INSERT INTO bugs_gv (product_id, description, date_reported)
+	VALUES (1, 'sgms ssl certificate not working', '2023-05-13'),
+		(2, 'CORPS left sidebar not showing', '2023-03-10'),
+        (2, 'Not able to export CORPS reports', '2022-04-10'),
+        (3, 'Status after payment is not updated', '2023-01-02'),
+        (1, 'Web application not accessible within company', '2023-01-10'),
+        (2, 'User failing to login', '2023-02-18'),
+        (3, 'bank payment report improperly aligned', '2023-05-18');
+
+// get date of latest bug reported for each product 
+SELECT product_id, name, MAX(date_reported) AS latest
+FROM products_gv JOIN bugs_gv USING (product_id)
+GROUP BY product_id;
+
+
+// Single-Value Rule 
+Every column in the select-list of a query must have a single value row per row group.
+
+// multiple aggregations 
+SELECT product_id, name, COUNT(bug_id) AS no_of_bugs,  MIN(date_reported) AS earliest, MAX(date_reported) AS latest
+FROM products_gv JOIN bugs_gv USING (product_id)
+GROUP BY product_id;
+
+
+
+
+// groupmby and distinct
+SELECT DISTINCT product_id FROM bugs_gv;
+
+SELECT product_id FROM bugs_gv
+GROUP BY product_id;
+
+
+// Functional dependency
+A functional dependency is an unambiguous relationship between two or more fields/columns.
+For example, attributes in a table always have a functional dependency with the primary key of the table.
+account_name in the accounts table is a functional dependency of the primary key , account_id. This means that if you know the  
+account_id, you can find out the account_name 
+
+// solution 
+
+// solution 1 - using a correlated subquery 
+SELECT p.product_id, p.name, b1.date_reported, b1.bug_id 
+FROM products_gv AS p INNER JOIN bugs_gv AS b1
+	USING(product_id)
+-- there should not be any other bug with a later date_reported
+WHERE NOT EXISTS (
+	SELECT * 
+    FROM bugs_gv AS b2 
+    WHERE b2.product_id = b1.product_id
+		AND b2.date_reported > b1.date_reported
+	);
+
+
+// solution 2 - using a derived table 
+SELECT p.product_id, p.name, bug_dates.max_date_reported, bugs_gv.bug_id 
+FROM products_gv AS p 
+	INNER JOIN 
+		(SELECT b.product_id, MAX(b.date_reported) AS max_date_reported
+		FROM bugs_gv AS b
+        GROUP BY b.product_id
+        ) AS bug_dates 
+	ON bug_dates.product_id = p.product_id
+    INNER JOIN bugs_gv 
+		ON bugs_gv.date_reported = bug_dates.max_date_reported 
+			AND bugs_gv.product_id = bug_dates.product_id ;
+
+// using JOIN 
+SELECT p.product_id, p.name, b1.date_reported AS max_date_reported, b1.bug_id 
+FROM products_gv AS p
+	INNER JOIN bugs_gv AS b1 USING (product_id)
+    LEFT OUTER JOIN bugs_gv AS b2 ON b2.product_id = b1.product_id AND b1.date_reported < b2.date_reported
+-- find cases where b2.bug_id IS NULL, in these cases every b1.bug_id has a date_reported that is later than b2.date_reported
+WHERE b2.bug_id IS NULL;
+
+// insert more bugs with same latest date 
+INSERT INTO bugs_gv (product_id, description, date_reported) VALUES (1, 'another ssl bug', '2023-05-13'),
+	(2, 'CCORPS certificate expired', '2023-03-10');
+
+// handle cases where there are multiple bugs on the latest date but you only want one bug per product
+SELECT p.product_id, p.name, b1.date_reported AS max_date_reported, b1.bug_id, MAX(b1.bug_id) AS max_bug_id
+FROM products_gv AS p
+	INNER JOIN bugs_gv AS b1 USING (product_id)
+    LEFT OUTER JOIN bugs_gv AS b2 ON b2.product_id = b1.product_id AND b1.date_reported < b2.date_reported
+-- find cases where b2.bug_id IS NULL, in these cases every b1.bug_id has a date_reported that is later than b2.date_reported
+WHERE b2.bug_id IS NULL
+GROUP BY product_id;
+
+// include name of bug 
+SELECT p.product_id, p.name, b1.date_reported AS max_date_reported, b1.bug_id, b1.description
+FROM products_gv AS p
+	INNER JOIN bugs_gv AS b1 USING (product_id)
+    LEFT OUTER JOIN bugs_gv AS b2 ON b2.product_id = b1.product_id AND b1.date_reported < b2.date_reported
+-- find cases where b2.bug_id IS NULL, in these cases every b1.bug_id has a date_reported that is later than b2.date_reported
+WHERE b2.bug_id IS NULL
+
+// GROUP_CONCAT to show all bugs for a product 
+SELECT product_id, name, COUNT(bug_id) AS no_of_bugs,  MIN(date_reported) AS earliest, MAX(date_reported) AS latest, GROUP_CONCAT(bug_id) AS bug_ids
+FROM products_gv JOIN bugs_gv USING (product_id)
+GROUP BY product_id, name;
+
+
+        
+
+        
+        
