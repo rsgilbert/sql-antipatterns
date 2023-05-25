@@ -3,3 +3,33 @@
 // antipattern
 // sort data randomly
 SELECT * FROM bugs_gv ORDER BY RAND() ;
+
+// example 2 
+CREATE TABLE orders2 (order_id SERIAL PRIMARY KEY, customer VARCHAR(100));
+INSERT INTO orders2(customer) VALUES ('IHK'), ('Mega supermarket'), ('IBM'), ('BMW');
+SELECT * FROM orders2 ORDER BY RAND() LIMIT 1;
+
+// solutions 
+
+// solution 1 
+// use random id less than MAX(id)
+SELECT RAND();
+SELECT CEIL(RAND());
+SELECT ROUND (10 * RAND());
+
+// delete some data 
+DELETE FROM orders2 WHERE order_id = 3;
+
+// get random row 
+SELECT *
+FROM orders2 AS o 
+	INNER JOIN (SELECT CEIL(RAND() * MAX(order_id)) AS random_order_id FROM orders2) AS D
+	ON o.order_id = D.random_order_id;
+
+// solution 2 
+// choose next higher value 
+SELECT *
+FROM orders2 AS o 
+	INNER JOIN (SELECT CEIL(RAND() * MAX(order_id)) AS random_order_id FROM orders2) AS D
+	ON o.order_id >= D.random_order_id
+    LIMIT 1;
