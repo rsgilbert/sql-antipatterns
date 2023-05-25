@@ -1,0 +1,57 @@
+// poor man's search engine
+You don’t have to use SQL to solve every problem
+
+
+// fundamental principle in SQL and relational theory
+A value in a column is atomic. You can compare a value to another value but you always compare the complete value.
+
+// example of searching 
+
+// using pattern matching predicates like LIKE 
+SELECT *
+FROM orders2 
+WHERE customer LIKE '%ega%';
+
+// using regex 
+SELECT *
+FROM orders2 
+WHERE customer REGEXP 'ih';
+
+
+// solution
+// define fulltext index 
+ALTER TABLE orders2 ADD FULLTEXT INDEX orders2_fulltextsearch(customer);
+// perform search 
+SELECT * FROM orders2 WHERE MATCH(customer) AGAINST ('ihk');
+SELECT * FROM orders2 WHERE MATCH(customer) AGAINST ('+mega -supermarket' IN BOOLEAN MODE);
+
+// solution2 
+define an inverted index 
+An inverted index is a list of all words one can search for .
+In a many to many relationship, each word is associated with a list of records that contain the word.
+CREATE TABLE keywords (
+	keyword_id SERIAL PRIMARY KEY, 
+    keyword VARCHAR(40) NOT NULL, 
+    UNIQUE KEY(keyword)
+);
+CREATE TABLE keywords_bugs6 (
+	keyword_id BIGINT UNSIGNED NOT NULL,
+    bug_id BIGINT UNSIGNED NOT NULL,
+    PRIMARY KEY (keyword_id, bug_id),
+    FOREIGN KEY (keyword_id) REFERENCES keywords (keyword_id),
+    FOREIGN KEY (bug_id) REFERENCES bugs6 (bug_id)
+);
+
+// insert data 
+INSERT INTO keywords (keyword) VALUES ('seeing');
+INSERT INTO keywords_bugs6 (keyword_id, bug_id) VALUES (LAST_INSERT_ID(), 3);
+INSERT INTO keywords (keyword) VALUES ('default');
+INSERT INTO keywords_bugs6 (keyword_id, bug_id) 
+	VALUES ((SELECT keyword_id FROM keywords WHERE keyword = 'default'), 9);
+
+// query 
+SELECT * 
+FROM keywords_bugs6
+	INNER JOIN keywords USING (keyword_id)
+    INNER JOIN bugs6 USING (bug_id)
+    WHERE keyword = 'default';
