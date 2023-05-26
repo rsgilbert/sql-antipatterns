@@ -1,0 +1,7 @@
+// implicit columns 
+
+// insert explicitly specifying columns 
+INSERT INTO bugs_sq (bug_id, status, description) VALUES (DEFAULT, 'OPEN', 'another one');
+
+// insert implicitly specifying columns
+INSERT INTO bugs_sq VALUES (DEFAULT, 'CLOSED', 'another second one');

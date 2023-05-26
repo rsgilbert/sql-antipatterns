@@ -65,6 +65,9 @@ SELECT CONCAT('UPDATE bugs_sq SET status2 = ''', status, ''' WHERE bug_id = ', b
 FROM bugs_sq;
 
 
+ALTER TABLE bugs_sq DROP COLUMN status2;
+
+
 
 
 
