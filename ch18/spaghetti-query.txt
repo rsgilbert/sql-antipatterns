@@ -1,0 +1,77 @@
+// Spaghetti query
+ 
+ // prepare data 
+
+CREATE TABLE bugs_sq (
+	bug_id SERIAL PRIMARY KEY,
+    status VARCHAR(10),
+    description VARCHAR(100)
+);
+
+CREATE TABLE bugsproducts_sq (
+	bug_id BIGINT UNSIGNED NOT NULL,
+    product_id BIGINT UNSIGNED NOT NULL,
+    PRIMARY KEY (bug_id, product_id),
+    FOREIGN KEY (bug_id) REFERENCES bugs_sq (bug_id)
+);
+
+INSERT INTO bugs_sq (status, description) 
+VALUES ('OPEN', 'error when opening card'), ('CLOSED', 'Poor performance'), ('OPEN', 'App does not auto start'),
+	('CLOSED', 'no place to fill in reason'), ('OPEN', 'missing information');
+
+INSERT INTO bugsproducts_sq (
+	bug_id, product_id) VALUES (1, 4), (2, 3), (1, 1), (3, 1), (4, 1), (5, 1);
+
+// count closed bugs and count open bugs all in one query 
+SELECT bp.product_id, COUNT(c.bug_id) AS count_closed,
+	COUNT(o.bug_id) AS count_open
+FROM bugsproducts_sq AS bp 
+	LEFT OUTER JOIN bugs_sq AS c ON (bp.bug_id = c.bug_id AND c.status = 'CLOSED')
+    LEFT OUTER JOIN bugs_sq AS o ON (bp.bug_id = o.bug_id AND o.status = 'OPEN')
+GROUP BY bp.product_id;
+    
+
+// solution
+// one step at a time 
+// first count closed 
+SELECT bp.product_id, COUNT(c.bug_id) AS count_closed
+FROM bugsproducts_sq AS bp 
+	LEFT OUTER JOIN bugs_sq AS c USING (bug_id)
+WHERE bp.product_id = 1 AND c.status = 'CLOSED';
+
+// then count open
+SELECT bp.product_id, COUNT(c.bug_id) AS count_open
+FROM bugsproducts_sq AS bp 
+	LEFT OUTER JOIN bugs_sq AS c USING (bug_id)
+WHERE bp.product_id = 1 AND c.status = 'OPEN';
+
+
+// use UNION to combine results of two queries into one 
+  
+SELECT bp.product_id, c.status, COUNT(c.bug_id) AS count
+FROM bugsproducts_sq AS bp 
+	LEFT OUTER JOIN bugs_sq AS c USING (bug_id)
+WHERE bp.product_id = 1 AND c.status = 'CLOSED'
+UNION ALL 
+SELECT bp.product_id, o.status, COUNT(o.bug_id) AS count
+FROM bugsproducts_sq AS bp 
+	LEFT OUTER JOIN bugs_sq AS o USING (bug_id)
+WHERE bp.product_id = 1 AND o.status = 'OPEN';
+
+// code generation
+ALTER TABLE bugs_sq ADD COLUMN status2 VARCHAR(20);
+
+SELECT CONCAT('UPDATE bugs_sq SET status2 = ''', status, ''' WHERE bug_id = ', bug_id) AS update_stmt
+FROM bugs_sq;
+
+
+
+
+
+
+
+
+
+
+
+
