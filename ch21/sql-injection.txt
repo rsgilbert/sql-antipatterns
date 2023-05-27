@@ -1,0 +1,51 @@
+// sql injection 
+INSERT INTO bugs3 (status) VALUES ('pie2'); DROP TABLE bugs3;  -- ');
+
+// web security threat
+// passwords 
+// prepare data 
+CREATE TABLE accounts_inj (account_id SERIAL PRIMARY KEY, email VARCHAR(100), password VARCHAR(100));
+
+INSERT INTO accounts_inj (email, password) 
+	VALUES ('g@mail.com', 'abc'), ('a@hot.co', '1ax'), ('tt@outlook.com', 'asdfsd');
+	
+SELECT * FROM accounts_inj;
+
+// update password
+UPDATE accounts_inj 
+SET password = 'mmm'
+WHERE account_id = 2;
+
+
+// sql injection 
+// update all passwords 
+UPDATE accounts_inj 
+SET password = 'hacked'
+WHERE account_id = 2 OR account_id > 0;
+
+// escaping quote character 
+// use two quote characters
+UPDATE accounts_inj 
+SET password = 'hac''ked'
+WHERE account_id = 2 ;
+
+// or use backslash 
+UPDATE accounts_inj 
+SET password = 'beas\'t'
+WHERE account_id = 2 ;
+
+
+// use stored procedure 
+// review and experiment with statement 
+SET @input_password = 'adf';
+SET @input_account_id = 1;
+SET @sql = CONCAT(
+		'UPDATE accounts_inj SET password = QUOTE(\'', 
+        @input_password,
+        '\') WHERE account_id = ',
+        @input_account_id);
+SELECT @sql;
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+
+// put statement into stored procedure 
