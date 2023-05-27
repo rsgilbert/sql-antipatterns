@@ -1,0 +1,15 @@
+// Dont reallocate pseudokey values just because they seem unused 
+
+// find gaps in primary key nos 
+SELECT b1.bug_id + 1 AS missing_bug_id, b2.bug_id, b1.description
+FROM bugs6 AS b1
+	LEFT JOIN bugs6 AS b2
+	ON b1.bug_id + 1 = b2.bug_id 
+WHERE b2.bug_id IS NULL;
+
+// number rows 
+SELECT bp.product_id, b.*,
+	ROW_NUMBER() OVER ( ORDER BY bug_id)
+FROM bugsproducts_sq AS bp JOIN bugs_sq AS b USING(bug_id)
+; 
+
