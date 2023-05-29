@@ -1,0 +1,4 @@
+See No Evil 
+
+Handle errors and potential sources of error 
+Log SQL queries 

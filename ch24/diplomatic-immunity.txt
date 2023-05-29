@@ -1,0 +1,4 @@
+Diplomatic immunity
+
+Technical debt: http://c2.com/doc/oopsla92.html
+
