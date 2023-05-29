@@ -1,0 +1,26 @@
+// experimenting to see the performance of querying
+// by filtering using a foreign key 
+USE sqlantipatterns;
+CREATE TABLE sales_headers (
+	id SERIAL PRIMARY KEY,
+    customer VARCHAR(20)
+);
+CREATE TABLE sales_lines3 (
+	line_no SERIAL PRIMARY KEY,
+	document_no BIGINT UNSIGNED NOT NULL,
+    item VARCHAR(20),
+    qty NUMERIC(9,2) -- ,
+   -- FOREIGN KEY (document_no) REFERENCES sales_headers(id)
+);
+
+INSERT INTO sales_headers (customer) VALUES ('HRP'), ('Mildmay'), ('technohub');
+INSERT INTO sales_lines3 (document_no, item, qty) 
+	VALUES (1, 'transportation', 1), 
+		(2, 'development of corps', 2),
+        (2, 'development of sgms2', 2),
+        (3, 'consulation in mysql', 1);
+        
+SELECT * FROM sales_lines3 WHERE document_no = 2;
+EXPLAIN SELECT * FROM sales_lines2 WHERE document_no = 2;
+
+-- SHOW CREATE TABLE sales_lines;
